@@ -1,0 +1,26 @@
+SUMMARY
+Software Engineer with 1.5 years of experience building scalable microservices and real-time applications.
+Looking for: Software Engineer, Backend Developer (Java/Spring Boot), Java Developer, Full Stack Developer (Java + React/Angular), SDE 1 roles requiring 0-3 years of experience, in Bangalore or Remote (India).
+
+EXPERIENCE
+Associate Software Engineer, Trivium India (Jan 2025 - present)
+- Built Java 21 + Spring Boot microservices for a real-time monitoring platform covering 1,000+ machines.
+- Implemented event-driven processing with Apache Kafka.
+- Reduced REST API response time to ~300ms.
+- Led the Angular 13 to 17 migration (45% faster builds, 30% smaller bundle).
+- CI/CD with Jenkins, Docker, Azure, SonarQube.
+
+PROJECTS
+- AI-assisted code generation tool: Node.js, React, MongoDB, LangChain, multi-LLM routing, Redis rate limiting.
+- Sync-Crowd synthetic data platform: Next.js, Node.js, MongoDB, Stripe.
+- Nihongo Tracker: Next.js, TypeScript, MongoDB, JWT, OAuth.
+
+SKILLS
+Languages: Java 21, JavaScript, TypeScript
+Backend: Spring Boot, Microservices, REST APIs, Kafka, WebSockets, Event-Driven Architecture, OOP, SOLID
+Databases: MySQL, PostgreSQL, MongoDB
+Cloud / DevOps: Azure, AWS, Docker, Kubernetes, Jenkins, Git
+Frontend: Angular, React, Next.js
+
+EDUCATION
+MCA, Christ University, Bangalore (2023-2025)

@@ -1,0 +1,26 @@
+# --- Secrets ---
+.env
+*.env.local
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# --- Data / logs ---
+backend/*.db
+backend/*.db-wal
+backend/*.db-shm
+backend/logs/
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------------------
+# Job Tracker backend dependencies (verified on Python 3.13, Windows 11)
+#
+# IMPORTANT: python-jobspy is NOT listed here on purpose.
+# python-jobspy 1.1.82 pins numpy==1.26.3, which has no wheels for Python
+# 3.12+/3.13 and fails to build on Windows. So we install jobspy's real
+# dependencies below (with a modern numpy) and then install jobspy itself
+# with --no-deps:
+#
+#   pip install -r requirements.txt
+#   pip install --no-deps python-jobspy==1.1.82
+# ---------------------------------------------------------------------------
+
+# --- python-jobspy's dependencies (relaxed numpy pin) ---
+numpy>=2.1,<3
+pandas>=2.2,<3
+beautifulsoup4>=4.12.2,<5
+markdownify>=0.13.1,<0.14
+regex>=2024.4.28,<2025
+tls-client>=1.0.1,<2
+
+# --- HTTP (Greenhouse / Lever public APIs) ---
+requests==2.34.2
+
+# --- Gemini (official "google-genai" SDK; replaces the old google-generativeai) ---
+google-genai==2.25.0
+
+# --- API ---
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+
+# --- Config ---
+pyyaml==6.0.3
+python-dotenv==1.2.3

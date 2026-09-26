@@ -1,0 +1,158 @@
+# =============================================================================
+# Job Tracker configuration
+# All relative paths are resolved against the backend/ folder.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Storage
+# -----------------------------------------------------------------------------
+database:
+  path: "jobs.db"
+
+profile_path: "profile.txt"
+
+# -----------------------------------------------------------------------------
+# Job boards via python-jobspy (LinkedIn, Indeed, Naukri, Google Jobs)
+# Valid site names: linkedin, indeed, naukri, google, glassdoor, zip_recruiter
+# -----------------------------------------------------------------------------
+jobspy:
+  sites:
+    - linkedin
+    - indeed
+    - naukri
+    - google
+
+  # Each search term is run once per location below.
+  search_terms:
+    - "Software Engineer Java"
+    - "Backend Developer Java Spring Boot"
+    - "Java Developer"
+    - "Full Stack Developer Java React"
+    - "Full Stack Developer Java Angular"
+    - "SDE 1"
+
+  # is_remote=true asks the boards for remote-only listings.
+  locations:
+    - name: "Bengaluru, Karnataka, India"
+      is_remote: false
+    - name: "India"
+      is_remote: true
+
+  country_indeed: "India"       # Country used by Indeed/Glassdoor
+  results_wanted: 30            # Per search term, per location, per site
+  hours_old: 72                 # Only jobs posted in the last N hours
+  linkedin_fetch_description: true  # Slower, but gives Gemini a real description
+  delay_between_searches_seconds: 5 # Polite pause between JobSpy calls
+
+  # Google Jobs needs its own natural-language query.
+  # {term} and {location} are substituted at runtime.
+  google_search_term_template: "{term} jobs near {location} since 3 days ago"
+
+# -----------------------------------------------------------------------------
+# Company career pages (public job board APIs, no auth needed)
+# Greenhouse: https://boards-api.greenhouse.io/v1/boards/<slug>/jobs
+# Lever:      https://api.lever.co/v0/postings/<slug>?mode=json
+# All slugs below were verified live and had India/Bengaluru openings.
+# -----------------------------------------------------------------------------
+companies:
+  greenhouse:
+    - name: "Groww"
+      slug: "groww"
+    - name: "Rubrik"
+      slug: "rubrik"
+    - name: "Druva"
+      slug: "druva"
+    - name: "HackerRank"
+      slug: "hackerrank"
+    - name: "InMobi"
+      slug: "inmobi"
+    # Extra verified options (uncomment to enable):
+    # - name: "Databricks"
+    #   slug: "databricks"
+    # - name: "Stripe"
+    #   slug: "stripe"
+    # - name: "GitLab"
+    #   slug: "gitlab"
+
+  lever:
+    - name: "CRED"
+      slug: "cred"
+    - name: "Meesho"
+      slug: "meesho"
+    - name: "Zeta"
+      slug: "zeta"
+    - name: "Hevo Data"
+      slug: "hevodata"
+    - name: "Mindtickle"
+      slug: "mindtickle"
+    # Extra verified options (uncomment to enable):
+    # - name: "Paytm"
+    #   slug: "paytm"
+    # - name: "FamPay"
+    #   slug: "fampay"
+
+  # Company boards return jobs worldwide. Keep only jobs whose location
+  # contains one of these words (case-insensitive).
+  location_keywords:
+    - "bengaluru"
+    - "bangalore"
+    - "india"
+
+  delay_between_companies_seconds: 1.5
+
+# -----------------------------------------------------------------------------
+# Filters applied to ALL sources before saving
+# -----------------------------------------------------------------------------
+filters:
+  # Titles containing any of these (case-insensitive) are skipped entirely.
+  # Senior/Lead roles are NOT excluded here; Gemini scores them lower instead.
+  title_exclude_keywords:
+    - "principal"
+    - "director"
+    - "head of"
+    - "vice president"
+    - "architect"
+    - "intern"
+
+  # A job title must contain at least one of these to be kept.
+  # Keeps unrelated roles (sales, HR, design) out of the database.
+  title_include_keywords:
+    - "engineer"
+    - "developer"
+    - "sde"
+    - "programmer"
+    - "java"
+    - "backend"
+    - "full stack"
+    - "fullstack"
+    - "software"
+
+# -----------------------------------------------------------------------------
+# Gemini matching
+# -----------------------------------------------------------------------------
+matcher:
+  # Current stable options: gemini-3.5-flash-lite (fast, cheapest),
+  # gemini-3.8-flash (smarter). Gemini 2.5 models are now access-restricted.
+  model: "gemini-3.5-flash-lite"
+  score_threshold: 60           # Jobs below this are hidden in the dashboard by default
+  max_description_chars: 6000   # Long descriptions are truncated before sending
+  max_retries: 5                # Retries on rate limits / transient errors
+  initial_backoff_seconds: 5    # Doubles after each retry
+  delay_between_calls_seconds: 4  # Keeps us under free-tier requests-per-minute
+  batch_limit: 200              # Max jobs scored per run
+
+# -----------------------------------------------------------------------------
+# Candidate summary (used in the Gemini prompt alongside profile.txt)
+# -----------------------------------------------------------------------------
+candidate:
+  years_of_experience: 1.5
+  target_experience_range: "0-3 years"
+  target_roles:
+    - "Software Engineer"
+    - "Backend Developer (Java/Spring Boot)"
+    - "Java Developer"
+    - "Full Stack Developer (Java + React/Angular)"
+    - "SDE 1"
+  preferred_locations:
+    - "Bangalore"
+    - "Remote (India)"
