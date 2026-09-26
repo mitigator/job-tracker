@@ -162,6 +162,15 @@ matcher:
   batch_limit: 200              # Max jobs scored per run
 
 # -----------------------------------------------------------------------------
+# Logging (files in backend/logs/, one per entry point, rotated automatically)
+# -----------------------------------------------------------------------------
+logging:
+  dir: "logs"
+  level: "INFO"          # DEBUG for more detail
+  max_bytes: 2000000     # rotate at ~2 MB
+  backup_count: 5        # keep 5 old files per log
+
+# -----------------------------------------------------------------------------
 # REST API (FastAPI)
 # -----------------------------------------------------------------------------
 api:

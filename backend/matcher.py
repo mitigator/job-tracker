@@ -354,12 +354,9 @@ def _parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
-                        stream=sys.stdout)
-    # The SDK's HTTP library logs every request at INFO; keep the output readable.
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    from logging_setup import setup_logging
+
+    setup_logging("matcher")  # console + logs/matcher.log
 
     args = _parse_args()
     if args.rescore:

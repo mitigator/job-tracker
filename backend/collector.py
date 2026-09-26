@@ -33,7 +33,6 @@ import html
 import logging
 import math
 import re
-import sys
 import time
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
@@ -555,11 +554,9 @@ def _parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    # Make sure non-ASCII job titles don't crash printing on Windows consoles.
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
-                        stream=sys.stdout)
+    from logging_setup import setup_logging
+
+    setup_logging("collector")  # console + logs/collector.log
 
     args = _parse_args()
     chosen = [s.strip() for s in args.sources.split(",")] if args.sources else None

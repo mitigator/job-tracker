@@ -14,15 +14,14 @@ Endpoints:
 Interactive docs: http://127.0.0.1:8000/docs
 
 Run:
-    uvicorn api:app --reload --port 8000
-    # or simply:
-    python api.py
+    python api.py              # host/port from config.yaml, logs to logs/api.log
+    python api.py --reload     # auto-restart on code changes (development)
 """
 
 from __future__ import annotations
 
+import argparse
 import logging
-import sys
 import threading
 from collections import deque
 from contextlib import asynccontextmanager
@@ -35,15 +34,17 @@ from pydantic import BaseModel, Field
 
 import db
 import run_daily
+from logging_setup import setup_logging
 from settings import has_gemini_api_key, load_config
 
 logger = logging.getLogger("api")
 
-# Show collector/matcher progress in the server console. This runs at import
-# time so it also works under `uvicorn --reload` (which imports us in a child
-# process). basicConfig does nothing if logging is already configured.
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
-logging.getLogger("httpx").setLevel(logging.WARNING)
+# Log to console + logs/api.log. Runs when the server process imports this
+# module. Skipped when this file is the `python api.py` launcher itself: with
+# --reload that launcher is a separate watcher process, and two processes must
+# not hold the same log file open on Windows (rotation would fail).
+if __name__ != "__main__":
+    setup_logging("api")
 
 # Must match db.VALID_STATUSES (checked at import time below).
 JobStatus = Literal["New", "Applied", "In progress", "Interview scheduled", "Rejected"]
@@ -231,7 +232,11 @@ run_manager = RunManager()
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Runs once at startup: make sure the DB and table exist."""
     db.init_db()
+    counts = db.get_score_counts(_score_threshold())
+    logger.info("API ready: %d jobs in DB (%d scored), Gemini key %s",
+                counts["total"], counts["scored"], "set" if has_gemini_api_key() else "MISSING")
     yield
+    logger.info("API shutting down")
 
 
 app = FastAPI(
@@ -354,9 +359,18 @@ def run_status() -> RunStatus:
 if __name__ == "__main__":
     import uvicorn
 
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    parser = argparse.ArgumentParser(description="Start the Job Tracker API.")
+    parser.add_argument("--reload", action="store_true",
+                        help="Restart on code changes (development). Note: a restart stops a running fetch.")
+    args = parser.parse_args()
 
     api_cfg = load_config().get("api") or {}
-    uvicorn.run("api:app", host=api_cfg.get("host", "127.0.0.1"), port=int(api_cfg.get("port", 8000)),
-                reload=True)
+    # Pass the app as an import string so uvicorn imports `api` fresh
+    # (that import sets up file logging, see the top of this file).
+    uvicorn.run(
+        "api:app",
+        host=api_cfg.get("host", "127.0.0.1"),
+        port=int(api_cfg.get("port", 8000)),
+        reload=args.reload,
+        reload_includes=["*.py", "config.yaml"] if args.reload else None,
+    )

@@ -19,8 +19,6 @@ import sys
 import time
 from typing import Any, Callable, Optional
 
-import collector
-import matcher
 from settings import has_gemini_api_key
 
 logger = logging.getLogger("run_daily")
@@ -36,6 +34,12 @@ def run_pipeline(
     Run collector then matcher. Returns a summary dict (used by the API in Phase 4).
     Never raises for a single failing step; errors are recorded in the summary.
     """
+    # Imported here (not at the top) so logging is already writing to the log
+    # file when these heavy libraries load. If an import fails in the scheduled
+    # task (no console window), the error still ends up in logs/run_daily.log.
+    import collector
+    import matcher
+
     started = time.time()
     summary: dict[str, Any] = {"collector": None, "matcher": None, "errors": []}
 
@@ -77,12 +81,16 @@ def _parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
-                        stream=sys.stdout)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    from logging_setup import setup_logging
 
+    log_file = setup_logging("run_daily")  # console + logs/run_daily.log
     args = _parse_args()
-    result = run_pipeline(quick=args.quick, skip_collect=args.skip_collect, skip_match=args.skip_match)
+    logger.info("Daily run started (log file: %s)", log_file)
+    try:
+        result = run_pipeline(quick=args.quick, skip_collect=args.skip_collect, skip_match=args.skip_match)
+    except Exception:
+        # Anything unexpected still ends up in the log file (important for the
+        # scheduled task, which has no console window to show errors).
+        logger.exception("Daily run crashed")
+        sys.exit(2)
     sys.exit(1 if result["errors"] else 0)
