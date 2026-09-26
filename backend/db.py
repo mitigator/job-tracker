@@ -326,6 +326,47 @@ def count_by_source() -> dict[str, int]:
     return {row["source"]: row["n"] for row in rows}
 
 
+def get_score_counts(threshold: int) -> dict[str, int]:
+    """Totals for the dashboard: all jobs, scored, unscored, and at/above threshold."""
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*)                                            AS total,
+                   COALESCE(SUM(match_score IS NOT NULL), 0)           AS scored,
+                   COALESCE(SUM(match_score IS NULL), 0)               AS unscored,
+                   COALESCE(SUM(match_score >= :threshold), 0)         AS above_threshold
+              FROM jobs
+            """,
+            {"threshold": threshold},
+        ).fetchone()
+    return dict(row)
+
+
+def clear_scores() -> int:
+    """
+    Reset every match score to NULL so the matcher scores all jobs again
+    (useful after editing profile.txt). Returns how many rows were reset.
+    """
+    with get_connection() as conn:
+        cursor = conn.execute(
+            "UPDATE jobs SET match_score = NULL, match_reason = NULL WHERE match_score IS NOT NULL"
+        )
+    return cursor.rowcount
+
+
+def get_title_company_keys() -> set[tuple[str, str]]:
+    """
+    Every (title, company) pair already stored, lower-cased.
+    The collector uses this to skip the same job posted on several boards
+    (e.g. on LinkedIn AND Naukri), which have different URLs.
+    """
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT LOWER(TRIM(title)) AS t, LOWER(TRIM(COALESCE(company, ''))) AS c FROM jobs"
+        ).fetchall()
+    return {(row["t"], row["c"]) for row in rows}
+
+
 def get_sources() -> list[str]:
     """Distinct sources, for the dashboard's filter dropdown."""
     return list(count_by_source().keys())

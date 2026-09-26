@@ -29,6 +29,7 @@ google-genai==2.25.0
 fastapi==0.141.1
 uvicorn[standard]==0.54.0
 pydantic==2.13.5
+httpx2==2.13.1   # FastAPI/Starlette TestClient backend (used by test_api.py)
 
 # --- Config ---
 pyyaml==6.0.3

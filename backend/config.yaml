@@ -16,6 +16,13 @@ profile_path: "profile.txt"
 # Valid site names: linkedin, indeed, naukri, google, glassdoor, zip_recruiter
 # -----------------------------------------------------------------------------
 jobspy:
+  # Status as of Sep 2026 (python-jobspy 1.1.82):
+  #   linkedin, indeed -> working
+  #   naukri -> Naukri answers "406 recaptcha required" (blocks scrapers)
+  #   google -> JobSpy's Google scraper returns 0 results (Google changed its page)
+  # naukri/google are left on so they start working automatically if that
+  # changes; the collector gives up on a site after max_consecutive_failures.
+  # Remove them to make runs a little faster.
   sites:
     - linkedin
     - indeed
@@ -32,11 +39,14 @@ jobspy:
     - "SDE 1"
 
   # is_remote=true asks the boards for remote-only listings.
+  # google_location is the wording used inside the Google Jobs query.
   locations:
     - name: "Bengaluru, Karnataka, India"
       is_remote: false
+      google_location: "Bengaluru"
     - name: "India"
       is_remote: true
+      google_location: "India remote"
 
   country_indeed: "India"       # Country used by Indeed/Glassdoor
   results_wanted: 30            # Per search term, per location, per site
@@ -44,9 +54,13 @@ jobspy:
   linkedin_fetch_description: true  # Slower, but gives Gemini a real description
   delay_between_searches_seconds: 5 # Polite pause between JobSpy calls
 
-  # Google Jobs needs its own natural-language query.
-  # {term} and {location} are substituted at runtime.
-  google_search_term_template: "{term} jobs near {location} since 3 days ago"
+  # Stop querying a site for the rest of the run after this many failures
+  # in a row (e.g. LinkedIn returning HTTP 429 "too many requests").
+  max_consecutive_failures: 3
+
+  # Google Jobs needs its own natural-language query, written the way you'd
+  # type it into Google. {term} and {location} are substituted at runtime.
+  google_search_term_template: "{term} jobs near {location} in the last 3 days"
 
 # -----------------------------------------------------------------------------
 # Company career pages (public job board APIs, no auth needed)
@@ -97,6 +111,12 @@ companies:
     - "bengaluru"
     - "bangalore"
     - "india"
+    - "mumbai"
+    - "new delhi"
+    - "gurgaon"
+    - "hyderabad"
+    - "pune"
+    - "noida"
 
   delay_between_companies_seconds: 1.5
 
@@ -142,6 +162,17 @@ matcher:
   batch_limit: 200              # Max jobs scored per run
 
 # -----------------------------------------------------------------------------
+# REST API (FastAPI)
+# -----------------------------------------------------------------------------
+api:
+  host: "127.0.0.1"
+  port: 8000
+  # Frontends allowed to call the API (Vite dev server by default).
+  cors_origins:
+    - "http://localhost:5173"
+    - "http://127.0.0.1:5173"
+
+# -----------------------------------------------------------------------------
 # Candidate summary (used in the Gemini prompt alongside profile.txt)
 # -----------------------------------------------------------------------------
 candidate:
@@ -155,4 +186,10 @@ candidate:
     - "SDE 1"
   preferred_locations:
     - "Bangalore"
+    - "Gurgaon"
+    - "Hyderabad"
+    - "Mumbai"
+    - "Pune"
+    - "Noida"
+    - "New Delhi"
     - "Remote (India)"
