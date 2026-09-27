@@ -283,7 +283,9 @@ def list_jobs(
         description="Minimum match score. Defaults to the config threshold; pass 0 to see everything.",
     ),
     include_unscored: bool = Query(True, description="Also return jobs Gemini hasn't scored yet"),
-    location: Optional[str] = Query(None, description="Case-insensitive 'contains' match"),
+    location: Optional[str] = Query(
+        None, description="Case-insensitive 'contains' match. Use | for alternatives, e.g. 'gurgaon|gurugram|remote'",
+    ),
     search: Optional[str] = Query(None, description="Searches title, company and description"),
     limit: int = Query(500, ge=1, le=2000),
     offset: int = Query(0, ge=0),

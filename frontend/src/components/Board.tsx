@@ -73,7 +73,7 @@ export function Board({ columns, hiddenInNew, hiddenHint, onMove, onOpenDetails 
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveJob(null)}
     >
-      <div className="thin-scroll flex h-full gap-3 overflow-x-auto px-4 pb-4">
+      <div className="thin-scroll -mx-4 flex items-start gap-3 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 xl:gap-4">
         {STATUSES.map((status) => (
           <Column
             key={status}
@@ -87,9 +87,9 @@ export function Board({ columns, hiddenInNew, hiddenHint, onMove, onOpenDetails 
       </div>
 
       {/* Floating copy of the card that follows the pointer (not clipped by column scroll). */}
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }}>
         {activeJob ? (
-          <div className="w-72 cursor-grabbing">
+          <div className="w-80 cursor-grabbing">
             <JobCardContent job={activeJob} dragging />
           </div>
         ) : null}

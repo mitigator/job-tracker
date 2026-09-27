@@ -76,6 +76,9 @@ def run_tests(client: TestClient) -> None:
     check(client.get("/jobs", params={"include_unscored": False}).json()["count"] == 1, "include_unscored=false")
     check(client.get("/jobs", params={"source": "linkedin", "min_score": 0}).json()["count"] == 2, "filter by source")
     check(client.get("/jobs", params={"location": "remote", "min_score": 0}).json()["count"] == 1, "filter by location")
+    check(client.get("/jobs", params={"location": "pune|remote", "min_score": 0}).json()["count"] == 2,
+          "location alternatives with |")
+    check(client.get("/jobs", params={"location": " | ", "min_score": 0}).json()["count"] == 3, "empty alternatives ignored")
     check(client.get("/jobs", params={"search": "kafka"}).json()["count"] == 1, "search text")
     check(client.get("/jobs", params={"status": "Bogus"}).status_code == 422, "invalid status -> 422")
 

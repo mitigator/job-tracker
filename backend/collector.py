@@ -232,14 +232,42 @@ def _jobspy_kwargs(site: str, term: str, location: dict[str, Any], cfg: dict[str
     return kwargs
 
 
-def _normalize_jobspy(record: dict[str, Any], site: str) -> Optional[dict[str, Any]]:
+# Indeed often reports only a state code ("HR, IN"). These names let us turn
+# that into something the dashboard's city filters can match.
+INDIAN_STATE_CODES: dict[str, str] = {
+    "AP": "Andhra Pradesh", "DL": "Delhi", "GJ": "Gujarat", "HR": "Haryana",
+    "KA": "Karnataka", "KL": "Kerala", "MH": "Maharashtra", "MP": "Madhya Pradesh",
+    "RJ": "Rajasthan", "TN": "Tamil Nadu", "TS": "Telangana", "TG": "Telangana",
+    "UP": "Uttar Pradesh", "WB": "West Bengal",
+}
+_STATE_ONLY = re.compile(r"^\s*,?\s*([A-Z]{2}),\s*IN\s*$")
+
+
+def _expand_state_only_location(location: str, searched: dict[str, Any]) -> str:
+    """
+    "HR, IN" -> "Gurugram, Haryana, India" if we were searching Gurugram (same state),
+    otherwise -> "Haryana, India". Any other location text is returned unchanged.
+    """
+    match = _STATE_ONLY.match(location)
+    if not match:
+        return location
+    state = INDIAN_STATE_CODES.get(match.group(1))
+    if not state:
+        return location
+    searched_name = str(searched.get("name") or "")
+    if not searched.get("is_remote") and state.lower() in searched_name.lower():
+        return searched_name
+    return f"{state}, India"
+
+
+def _normalize_jobspy(record: dict[str, Any], site: str, searched: dict[str, Any]) -> Optional[dict[str, Any]]:
     """Convert one JobSpy DataFrame row into our standard job dict."""
     url = _clean(record.get("job_url")) or _clean(record.get("job_url_direct"))
     title = _clean(record.get("title"))
     if not url or not title:
         return None
 
-    location = _clean(record.get("location")) or ""
+    location = _expand_state_only_location(_clean(record.get("location")) or "", searched)
     if _clean(record.get("is_remote")) and "remote" not in location.lower():
         location = f"{location} (Remote)".strip()
 
@@ -316,7 +344,7 @@ def collect_jobspy_site(
 
             result.fetched += len(records)
             for record in records:
-                job = _normalize_jobspy(record, site)
+                job = _normalize_jobspy(record, site, location)
                 if job and job_filter.accept(job, result):
                     kept.append(job)
 

@@ -247,7 +247,9 @@ def query_jobs(
 
     - status / source: exact match
     - min_score: match_score >= min_score (unscored jobs kept if include_unscored)
-    - location / search: case-insensitive "contains" match
+    - location: case-insensitive "contains" match. Several alternatives can be
+      separated by "|" and match if ANY is found, e.g. "gurgaon|gurugram".
+    - search: case-insensitive "contains" match
       (search looks in title, company and description)
 
     Sorted by best score first, then newest first. Unscored jobs go last.
@@ -270,8 +272,13 @@ def query_jobs(
     elif not include_unscored:
         conditions.append("match_score IS NOT NULL")
     if location:
-        conditions.append("LOWER(COALESCE(location, '')) LIKE :location")
-        params["location"] = f"%{location.lower()}%"
+        alternatives = [part.strip().lower() for part in location.split("|") if part.strip()]
+        if alternatives:
+            placeholders = []
+            for index, alternative in enumerate(alternatives):
+                params[f"location_{index}"] = f"%{alternative}%"
+                placeholders.append(f"LOWER(COALESCE(location, '')) LIKE :location_{index}")
+            conditions.append("(" + " OR ".join(placeholders) + ")")
     if search:
         conditions.append(
             "("

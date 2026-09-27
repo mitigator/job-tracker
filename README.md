@@ -82,15 +82,21 @@ Change the level (e.g. `DEBUG`), size or folder under `logging:` in `config.yaml
 
 ## Dashboard
 
+- **Summary tiles**: top matches (score at or above the threshold) and a count for every status.
 - **Kanban board** with New, Applied, In progress, Interview scheduled and Rejected.
   - Drag cards between columns with the mouse, by press-and-hold on touch screens, or with the keyboard (focus a card, Space, arrow keys, Space).
   - The new status saves immediately. If the save fails, the card moves back and an error message appears.
-- **Cards** show title, company, location, source, a coloured score badge (green ≥ 80, lime ≥ 60, amber ≥ 40, red below, grey if unscored), Gemini's reason, and an **Open job** button that opens a new tab.
-- **Click a card** to see the full description, change the status and write notes. Notes save automatically 800 ms after you stop typing, and again when you close the popup.
-- **Top bar**: counts per status, **Fetch new jobs** with live progress and a log, a reload button and a dark mode toggle.
-- **Filters**: search, location, source, minimum score and "show unscored".
+- **Cards** show the company (as a coloured initials avatar), title, location, how long ago the job was found, and the source. They also show a score ring (green ≥ 80, lime ≥ 60, amber ≥ 40, red below, dashed if unscored), Gemini's reason, your notes, and an **Open job** link.
+- **Click a card** to open the details panel, which slides in from the right:
+  - full description, score and reason
+  - a one-click status picker
+  - notes that save automatically 800 ms after you stop typing, and again when you close the panel
+- **Filters**: search, source, minimum score, "show unscored", and **city chips**.
+  - Chips: Bengaluru, Remote, Gurgaon, Mumbai, Noida, Hyderabad, Pune, plus an "Other city" box.
+  - You can select several chips at once, and each chip matches all spellings (e.g. Gurgaon/Gurugram/Haryana).
   - The score filter only hides jobs in **New**. Jobs you've moved to another column always stay visible.
   - Filters are remembered in the browser.
+- **Header**: **Fetch new jobs** (switch on **Quick** for a short test run) with live progress and a log, a reload button, and a light/dark toggle. The theme follows your OS until you choose one.
 
 ## Job sources
 
@@ -103,7 +109,7 @@ Change the level (e.g. `DEBUG`), size or folder under `logging:` in `config.yaml
 | Greenhouse | Public board API | Working (Groww, Rubrik, Druva, HackerRank, InMobi) |
 | Lever | Public postings API | Working (CRED, Meesho, Zeta, Hevo Data, Mindtickle) |
 
-Naukri and Google stay enabled. The collector gives up on a site after 3 failures in a row, so they cost about 20 seconds per run and will start working automatically if JobSpy fixes them. A full collection takes about 10-12 minutes (LinkedIn description fetching is the slow part), plus about 5 seconds per new job for scoring.
+Naukri and Google stay enabled. The collector gives up on a site after 3 failures in a row, so they cost about 20 seconds per run and will start working automatically if JobSpy fixes them. A full collection takes roughly 35-40 minutes with all 7 search locations (about 5 minutes each; LinkedIn description fetching is the slow part), plus about 5 seconds per new job for scoring. Comment out locations in `config.yaml` to make it faster.
 
 ## How scoring works
 
@@ -127,7 +133,7 @@ Everything lives in [`backend/config.yaml`](backend/config.yaml):
 
 | Section | What you can change |
 |---|---|
-| `jobspy` | Sites, search terms, locations (Bengaluru + Remote India), results per search, max job age |
+| `jobspy` | Sites, search terms, locations (Bengaluru, Remote India, Gurugram, Mumbai, Noida, Hyderabad, Pune), results per search, max job age. Each location adds about 5 minutes to a full run |
 | `companies` | Greenhouse/Lever board slugs, and the location keywords that keep only India jobs. A company's slug is in its careers URL: `boards.greenhouse.io/<slug>` or `jobs.lever.co/<slug>` |
 | `filters` | Title keywords to always skip (e.g. Principal, Director) or require (e.g. engineer, developer) |
 | `matcher` | Gemini model, score threshold (default 60), retries, delay between calls |

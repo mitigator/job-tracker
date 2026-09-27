@@ -1,3 +1,5 @@
+import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react'
+
 export interface Toast {
   id: number
   kind: 'success' | 'error' | 'info'
@@ -9,27 +11,32 @@ interface ToastsProps {
   onDismiss: (id: number) => void
 }
 
-/** Small stack of notifications in the bottom-right corner. */
+const STYLES = {
+  success: { icon: CheckCircle2, colour: 'text-emerald-500' },
+  error: { icon: AlertCircle, colour: 'text-rose-500' },
+  info: { icon: Info, colour: 'text-indigo-500' },
+} as const
+
+/** Stack of notifications in the bottom-right corner. */
 export function Toasts({ toasts, onDismiss }: ToastsProps) {
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex w-full max-w-sm flex-col gap-2" aria-live="polite">
+    <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-2" aria-live="polite">
       {toasts.map((toast) => {
-        const colour =
-          toast.kind === 'error'
-            ? 'border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-500/40 dark:bg-rose-950 dark:text-rose-100'
-            : toast.kind === 'success'
-              ? 'border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-950 dark:text-emerald-100'
-              : 'border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
+        const { icon: Icon, colour } = STYLES[toast.kind]
         return (
-          <div key={toast.id} className={`pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg ${colour}`}>
-            <p className="flex-1">{toast.message}</p>
+          <div
+            key={toast.id}
+            className="pointer-events-auto flex animate-toast-in items-start gap-3 rounded-xl border border-slate-200/80 bg-white/95 px-4 py-3 text-sm shadow-xl shadow-slate-900/10 backdrop-blur dark:border-white/10 dark:bg-[#171b24]/95 dark:shadow-black/40"
+          >
+            <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${colour}`} />
+            <p className="flex-1 text-slate-700 dark:text-slate-200">{toast.message}</p>
             <button
               type="button"
               onClick={() => onDismiss(toast.id)}
-              className="opacity-60 hover:opacity-100"
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-white"
               aria-label="Dismiss notification"
             >
-              ✕
+              <X className="h-4 w-4" />
             </button>
           </div>
         )

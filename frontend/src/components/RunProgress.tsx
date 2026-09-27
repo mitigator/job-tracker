@@ -1,3 +1,4 @@
+import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, Terminal, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { RunStatus } from '../types'
 
@@ -13,7 +14,7 @@ function elapsed(fromIso: string | null, toIso: string | null): string {
   return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`
 }
 
-/** Banner under the top bar showing live progress of POST /run, then a summary. */
+/** Card showing live progress of POST /run, then a summary when it finishes. */
 export function RunProgress({ run, onDismiss }: RunProgressProps) {
   const [showLog, setShowLog] = useState(false)
   const [, forceTick] = useState(0)
@@ -31,58 +32,85 @@ export function RunProgress({ run, onDismiss }: RunProgressProps) {
     ? Object.values(result.collector).reduce((sum, source) => sum + source.inserted, 0)
     : null
   const problems = [...(result?.errors ?? []), ...(run.error ? [run.error] : [])]
+  const warn = run.state === 'failed' || problems.length > 0
 
-  const colour = running
-    ? 'border-sky-200 bg-sky-50 dark:border-sky-900 dark:bg-sky-950/40'
-    : run.state === 'failed' || problems.length > 0
-      ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40'
-      : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40'
+  const Icon = running ? Loader2 : warn ? AlertTriangle : CheckCircle2
+  const iconClass = running
+    ? 'animate-spin text-indigo-500'
+    : warn
+      ? 'text-amber-500'
+      : 'text-emerald-500'
 
   return (
-    <div className={`mx-4 mt-3 rounded-lg border px-4 py-3 text-sm ${colour}`} role="status">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        {running && <span className="h-4 w-4 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" aria-hidden />}
-        <strong>{running ? 'Fetching jobs…' : run.state === 'failed' ? 'Run failed' : 'Run finished'}</strong>
-        <span className="text-slate-500 tabular-nums dark:text-slate-400">{elapsed(run.started_at, run.finished_at)}</span>
+    <section
+      role="status"
+      className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-white/[0.07] dark:bg-white/[0.03]"
+    >
+      {/* Indeterminate progress bar while running */}
+      {running && (
+        <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-indigo-100 dark:bg-indigo-500/10">
+          <div className="h-full w-2/5 animate-indeterminate rounded-full bg-linear-to-r from-indigo-500 to-violet-500" />
+        </div>
+      )}
 
-        {running && <span className="min-w-0 flex-1 truncate text-slate-700 dark:text-slate-300">{run.current_step}</span>}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+        <Icon className={`h-5 w-5 shrink-0 ${iconClass}`} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">
+            {running ? 'Fetching new jobs' : run.state === 'failed' ? 'Run failed' : 'Run finished'}
+            <span className="ml-2 font-normal text-slate-400 tabular-nums">{elapsed(run.started_at, run.finished_at)}</span>
+          </p>
+          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+            {running
+              ? run.current_step
+              : [
+                  inserted !== null ? `${inserted} new jobs saved` : null,
+                  result?.matcher
+                    ? `${result.matcher.scored} scored${result.matcher.failed ? `, ${result.matcher.failed} failed` : ''}${
+                        result.matcher.remaining ? `, ${result.matcher.remaining} still unscored` : ''
+                      }`
+                    : null,
+                  result?.matcher?.stopped_early ? result.matcher.stop_reason : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+          </p>
+        </div>
 
-        {!running && (
-          <span className="flex-1 text-slate-700 dark:text-slate-300">
-            {inserted !== null && <>{inserted} new jobs saved. </>}
-            {result?.matcher && (
-              <>
-                {result.matcher.scored} scored{result.matcher.failed ? `, ${result.matcher.failed} failed` : ''}
-                {result.matcher.remaining ? `, ${result.matcher.remaining} still unscored` : ''}.{' '}
-                {result.matcher.stopped_early && <em>{result.matcher.stop_reason}</em>}
-              </>
-            )}
-          </span>
-        )}
-
-        <button type="button" onClick={() => setShowLog((v) => !v)} className="text-xs font-medium text-sky-700 hover:underline dark:text-sky-300">
-          {showLog ? 'Hide log' : 'Show log'}
+        <button
+          type="button"
+          onClick={() => setShowLog((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+          aria-expanded={showLog}
+        >
+          <Terminal className="h-3.5 w-3.5" /> Log
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showLog ? 'rotate-180' : ''}`} />
         </button>
         {!running && (
-          <button type="button" onClick={onDismiss} className="text-xs opacity-60 hover:opacity-100" aria-label="Dismiss">
-            ✕
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
       {problems.length > 0 && (
-        <ul className="mt-2 list-disc pl-5 text-xs text-amber-800 dark:text-amber-300">
+        <ul className="mx-4 mb-3 space-y-1 rounded-xl bg-amber-50 px-4 py-2.5 text-xs text-amber-900 dark:bg-amber-400/[0.07] dark:text-amber-200">
           {problems.map((problem) => (
-            <li key={problem}>{problem}</li>
+            <li key={problem}>• {problem}</li>
           ))}
         </ul>
       )}
 
       {showLog && (
-        <pre className="thin-scroll mt-2 max-h-48 overflow-auto rounded bg-white/70 p-2 font-mono text-[11px] leading-relaxed whitespace-pre-wrap dark:bg-slate-900/70">
+        <pre className="thin-scroll mx-4 mb-4 max-h-56 overflow-auto rounded-xl bg-slate-950 p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-slate-300">
           {run.log.length ? run.log.join('\n') : 'No log lines yet.'}
         </pre>
       )}
-    </div>
+    </section>
   )
 }

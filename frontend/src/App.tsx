@@ -1,13 +1,17 @@
+import { KeyRound, ServerCrash } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { errorMessage, fetchJobs, fetchMeta, fetchRunStatus, fetchStats, startRun, updateJob } from './api'
+import { API_BASE_URL, errorMessage, fetchJobs, fetchMeta, fetchRunStatus, fetchStats, startRun, updateJob } from './api'
 import { Board } from './components/Board'
+import { BoardSkeleton } from './components/BoardSkeleton'
 import { FilterBar } from './components/FilterBar'
-import { JobModal } from './components/JobModal'
+import { Header } from './components/Header'
+import { JobDrawer } from './components/JobDrawer'
 import { RunProgress } from './components/RunProgress'
+import { StatTiles } from './components/StatTiles'
 import { type Toast, Toasts } from './components/Toasts'
-import { TopBar } from './components/TopBar'
 import { useDebouncedValue, usePersistentState, useTheme } from './hooks'
 import { type Filters, type Job, type JobStatus, type Meta, type RunStatus, type Stats, STATUSES } from './types'
+import { buildLocationQuery } from './utils'
 
 const DEFAULT_THRESHOLD = 60
 const RUN_POLL_MS = 2000
@@ -29,12 +33,15 @@ export default function App() {
     source: '',
     minScore: DEFAULT_THRESHOLD,
     includeUnscored: true,
+    locations: [],
     location: '',
     search: '',
   })
   // Typing in search/location waits 350ms before hitting the API.
   const debouncedSearch = useDebouncedValue(filters.search, 350)
   const debouncedLocation = useDebouncedValue(filters.location, 350)
+  // City chips + typed city -> "bengaluru|bangalore|...|<typed>" (the API treats | as OR).
+  const locationQuery = buildLocationQuery(filters.locations, debouncedLocation)
 
   // ---------------------------------------------------------------- toasts
   const notify = useCallback((kind: Toast['kind'], message: string) => {
@@ -55,7 +62,7 @@ export default function App() {
 
   const loadJobs = useCallback(async () => {
     try {
-      const data = await fetchJobs({ source: filters.source, location: debouncedLocation, search: debouncedSearch })
+      const data = await fetchJobs({ source: filters.source, location: locationQuery, search: debouncedSearch })
       setJobs(data)
       setApiError(null)
     } catch (error) {
@@ -63,7 +70,7 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [filters.source, debouncedLocation, debouncedSearch])
+  }, [filters.source, locationQuery, debouncedSearch])
 
   const loadMeta = useCallback(async () => {
     try {
@@ -175,8 +182,14 @@ export default function App() {
 
   // ---------------------------------------------------------------- render
   return (
-    <div className="flex h-dvh flex-col">
-      <TopBar
+    <div className="relative min-h-dvh">
+      {/* Soft brand glow behind the top of the page */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-indigo-100/70 via-violet-50/40 to-transparent dark:from-indigo-500/[0.08] dark:via-violet-500/[0.03]"
+        aria-hidden
+      />
+
+      <Header
         stats={stats}
         running={isRunning}
         quickRun={quickRun}
@@ -187,35 +200,51 @@ export default function App() {
         onToggleTheme={toggleTheme}
       />
 
-      {run && <RunProgress run={run} onDismiss={() => setRun(null)} />}
+      <main className="mx-auto max-w-[1800px] space-y-4 px-4 py-5 sm:px-6">
+        <StatTiles stats={stats} />
 
-      {meta && !meta.gemini_configured && (
-        <p className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-          GEMINI_API_KEY isn't set in <code>backend/.env</code>, so new jobs won't be scored.
-        </p>
-      )}
+        {run && <RunProgress run={run} onDismiss={() => setRun(null)} />}
 
-      <FilterBar
-        filters={filters}
-        sources={meta?.sources ?? []}
-        defaultMinScore={threshold}
-        shownCount={shownCount}
-        onChange={setFilters}
-      />
-
-      <main className="min-h-0 flex-1">
-        {apiError ? (
-          <div className="mx-4 rounded-lg border border-rose-200 bg-rose-50 p-6 text-center text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
-            <p className="font-semibold">{apiError}</p>
-            <p className="mt-1 opacity-80">
-              Start it with <code>python api.py</code> in the backend folder, then retry.
+        {meta && !meta.gemini_configured && (
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-400/[0.06] dark:text-amber-200">
+            <KeyRound className="h-4 w-4 shrink-0" />
+            <p>
+              <code className="font-semibold">GEMINI_API_KEY</code> isn't set in <code>backend/.env</code>, so new jobs won't be
+              scored.
             </p>
-            <button type="button" onClick={refreshAll} className="mt-3 rounded-lg bg-rose-600 px-4 py-1.5 font-medium text-white hover:bg-rose-700">
+          </div>
+        )}
+
+        <FilterBar
+          filters={filters}
+          sources={meta?.sources ?? []}
+          defaultMinScore={threshold}
+          shownCount={shownCount}
+          onChange={setFilters}
+        />
+
+        {apiError ? (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-rose-200 bg-white px-6 py-12 text-center dark:border-rose-400/20 dark:bg-white/[0.02]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 dark:bg-rose-500/10">
+              <ServerCrash className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-display font-semibold">{apiError}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Start it with <code className="rounded bg-slate-100 px-1.5 py-0.5 dark:bg-white/10">.\start.ps1</code> (expects{' '}
+                {API_BASE_URL}), then retry.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={refreshAll}
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            >
               Retry
             </button>
           </div>
         ) : loading ? (
-          <p className="p-8 text-center text-sm text-slate-500">Loading jobs…</p>
+          <BoardSkeleton />
         ) : (
           <Board
             columns={columns}
@@ -228,7 +257,7 @@ export default function App() {
       </main>
 
       {selectedJobId !== null && (
-        <JobModal
+        <JobDrawer
           key={selectedJobId}
           jobId={selectedJobId}
           onClose={() => setSelectedJobId(null)}

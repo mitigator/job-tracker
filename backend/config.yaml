@@ -40,6 +40,9 @@ jobspy:
 
   # is_remote=true asks the boards for remote-only listings.
   # google_location is the wording used inside the Google Jobs query.
+  # Every location multiplies the run time: each one runs all search terms on
+  # every site (~5 min per location, mostly LinkedIn). Comment out cities you
+  # don't need. --quick runs only use the FIRST location.
   locations:
     - name: "Bengaluru, Karnataka, India"
       is_remote: false
@@ -47,6 +50,21 @@ jobspy:
     - name: "India"
       is_remote: true
       google_location: "India remote"
+    - name: "Gurugram, Haryana, India"   # LinkedIn's name for Gurgaon
+      is_remote: false
+      google_location: "Gurgaon"
+    - name: "Mumbai, Maharashtra, India"
+      is_remote: false
+      google_location: "Mumbai"
+    - name: "Noida, Uttar Pradesh, India"
+      is_remote: false
+      google_location: "Noida"
+    - name: "Hyderabad, Telangana, India"
+      is_remote: false
+      google_location: "Hyderabad"
+    - name: "Pune, Maharashtra, India"
+      is_remote: false
+      google_location: "Pune"
 
   country_indeed: "India"       # Country used by Indeed/Glassdoor
   results_wanted: 30            # Per search term, per location, per site
@@ -114,6 +132,7 @@ companies:
     - "mumbai"
     - "new delhi"
     - "gurgaon"
+    - "gurugram"
     - "hyderabad"
     - "pune"
     - "noida"

@@ -94,6 +94,7 @@ export interface Filters {
   source: string // '' = all sources
   minScore: number // applies to the "New" column only
   includeUnscored: boolean
-  location: string
+  locations: string[] // selected city chips (keys from LOCATION_PRESETS)
+  location: string // free-text location, combined with the chips
   search: string
 }
